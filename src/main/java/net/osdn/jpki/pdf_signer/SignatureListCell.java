@@ -1,6 +1,7 @@
 package net.osdn.jpki.pdf_signer;
 
 import javafx.fxml.FXML;
+import javafx.scene.AccessibleAttribute;
 import javafx.scene.Node;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
@@ -82,4 +83,13 @@ public class SignatureListCell extends ListCell<Signature> {
             return new SignatureListCell(this);
         }
     }
+
+    @Override
+	public Object queryAccessibleAttribute(AccessibleAttribute attribute, Object... parameters) {
+		if (attribute == AccessibleAttribute.TEXT){
+			return lblTitle.getText()+lblDescription.getText();
+		} else {
+			return super.queryAccessibleAttribute(attribute, parameters);
+		}
+	}
 }
