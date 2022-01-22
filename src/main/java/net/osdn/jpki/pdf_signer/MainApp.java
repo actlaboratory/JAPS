@@ -138,7 +138,7 @@ public class MainApp extends SingletonApplication implements Initializable {
     };
 
     protected void showException(Throwable exception) {
-        exception.printStackTrace()
+        exception.printStackTrace();
 
         Runnable r = ()-> {
             String title;
