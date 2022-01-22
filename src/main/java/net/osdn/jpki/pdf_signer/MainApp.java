@@ -24,6 +24,8 @@ import javafx.scene.control.ProgressIndicator;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.input.TransferMode;
@@ -35,6 +37,7 @@ import net.osdn.jpki.wrapper.JpkiException;
 import net.osdn.jpki.wrapper.JpkiWrapper;
 import net.osdn.util.javafx.application.SingletonApplication;
 import net.osdn.util.javafx.concurrent.Async;
+import net.osdn.util.javafx.event.SilentEventHandler;
 import net.osdn.util.javafx.fxml.Fxml;
 import net.osdn.util.javafx.scene.control.Dialogs;
 import net.osdn.util.javafx.scene.control.pdf.Pager;
@@ -135,7 +138,7 @@ public class MainApp extends SingletonApplication implements Initializable {
     };
 
     protected void showException(Throwable exception) {
-        exception.printStackTrace();
+        exception.printStackTrace()
 
         Runnable r = ()-> {
             String title;
@@ -249,6 +252,7 @@ public class MainApp extends SingletonApplication implements Initializable {
         }).onFailed(exception -> {
             showException(exception);
         });
+        lvSignature.setOnKeyPressed(SilentEventHandler.wrap(this::lvSignature_onKeyPressed));
     }
 
     void scene_onDragOver(DragEvent event) {
@@ -375,6 +379,24 @@ public class MainApp extends SingletonApplication implements Initializable {
         Datastore.saveSignatures(lvSignature.getItems().subList(0, lvSignature.getItems().size()));
     }
 
+    public void lvSignature_onKeyPressed(KeyEvent event) throws JpkiException, IOException, ReflectiveOperationException {
+        // エンターキー以外は無視
+        if(event.getCode() != KeyCode.ENTER){
+            toast.show(Toast.GREEN,
+                    "キー操作での可視署名には対応していません。",
+                    "可視署名を行うには、使用したい署名を表示位置までマウスでドラッグする必要があります。");
+            return;
+        }
+
+        toast.hide();
+
+        Signature signature = lvSignature.getFocusModel(). getFocusedItem();
+        if(signature != Signature.INVISIBLE) {
+            return;
+        }
+        signInvisible();
+    }
+
     public void lvSignature_cell_onMousePressed(MouseEvent event) throws JpkiException, IOException, ReflectiveOperationException {
         toast.hide();
         @SuppressWarnings("unchecked")
@@ -394,39 +416,43 @@ public class MainApp extends SingletonApplication implements Initializable {
         try {
             if(!event.isPrimaryButtonDown()) {
                 return;
-            } else if(pdfView.getDocument() == null) {
-                toast.show(Toast.GREEN,
-                        "はじめに",
-                        "PDFファイルをこのウィンドウにドラッグ&ドロップして表示しましょう。");
-            } else if(checkJpkiAvailability()) {
-                ButtonType result = Dialogs.showConfirmation(getPrimaryStage(),
-                        APPLICATION_NAME + " " + APPLICATION_VERSION,
-                        "印影を使わずに電子署名しますか？");
-                if(result == ButtonType.YES) {
-                    PDDocument document = pdfView.getDocument();
-                    int pageIndex = pdfView.getPageIndex();
-                    SignatureOptions options = null;
-
-                    busyProperty.set(true);
-                    Async.execute(() -> sign(document, null, APPLICATION_NAME, APPLICATION_VERSION))
-                        .onSucceeded(tmpFile -> {
-                            if(tmpFile != null) {
-                                signedTemporaryFileProperty.set(tmpFile);
-                                pdfView.load(tmpFile, pageIndex);
-                                busyProperty.set(false);
-
-                                if(ButtonType.YES == Dialogs.showConfirmation(getPrimaryStage(),
-                                        APPLICATION_NAME + " " + APPLICATION_VERSION,
-                                        "署名が完了しました。\nファイルに名前を付けて保存しますか？")) {
-                                    menuFileSave.fire();
-                                }
-                            }
-                        })
-                        .onCompleted(state -> busyProperty.set(false));
-                }
             }
+            signInvisible();
         } finally {
             lvSignature.getSelectionModel().clearSelection();
+        }
+    }
+
+    private void signInvisible(){
+        if(pdfView.getDocument() == null) {
+            toast.show(Toast.GREEN,
+                    "はじめに",
+                    "PDFファイルをこのウィンドウにドラッグ&ドロップして表示しましょう。");
+        } else if(checkJpkiAvailability()) {
+            ButtonType result = Dialogs.showConfirmation(getPrimaryStage(),
+                    APPLICATION_NAME + " " + APPLICATION_VERSION,
+                    "印影を使わずに電子署名しますか？");
+            if(result == ButtonType.YES) {
+                PDDocument document = pdfView.getDocument();
+                int pageIndex = pdfView.getPageIndex();
+                SignatureOptions options = null;
+                    busyProperty.set(true);
+                Async.execute(() -> sign(document, null, APPLICATION_NAME, APPLICATION_VERSION))
+                    .onSucceeded(tmpFile -> {
+                        if(tmpFile != null) {
+                            signedTemporaryFileProperty.set(tmpFile);
+                            pdfView.load(tmpFile, pageIndex);
+                            busyProperty.set(false);
+
+                            if(ButtonType.YES == Dialogs.showConfirmation(getPrimaryStage(),
+                                    APPLICATION_NAME + " " + APPLICATION_VERSION,
+                                    "署名が完了しました。\nファイルに名前を付けて保存しますか？")) {
+                                menuFileSave.fire();
+                            }
+                        }
+                    })
+                    .onCompleted(state -> busyProperty.set(false));
+            }
         }
     }
 
