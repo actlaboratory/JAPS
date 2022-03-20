@@ -21,6 +21,7 @@ import javafx.scene.control.ListCell;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ProgressIndicator;
+import javafx.scene.control.TextInputDialog;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.DragEvent;
@@ -32,7 +33,6 @@ import javafx.scene.input.TransferMode;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import net.osdn.jpki.pdf_signer.control.LicenseDialog;
-import net.osdn.jpki.pdf_signer.control.Toast;
 import net.osdn.jpki.wrapper.JpkiException;
 import net.osdn.jpki.wrapper.JpkiWrapper;
 import net.osdn.util.javafx.application.SingletonApplication;
@@ -43,6 +43,10 @@ import net.osdn.util.javafx.scene.control.Dialogs;
 import net.osdn.util.javafx.scene.control.pdf.Pager;
 import net.osdn.util.javafx.scene.control.pdf.PdfView;
 import net.osdn.util.javafx.stage.StageUtil;
+import javafx.scene.control.TextInputDialog;
+
+import org.actlab.updater.UpdateChecker;
+import org.actlab.updater.UpdaterStatus;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.common.PDRectangle;
 import org.apache.pdfbox.pdmodel.interactive.digitalsignature.SignatureOptions;
@@ -67,8 +71,10 @@ import java.util.prefs.Preferences;
 
 public class MainApp extends SingletonApplication implements Initializable {
 
-    public static final String APPLICATION_NAME = "JPKI PDF SIGNER";
+    public static final String APPLICATION_NAME = "JPKI ACCESSIBLE PDF SIGNER";
+    public static final String APPLICATION_SHORT_NAME = "JAPS";
     public static final String APPLICATION_VERSION;
+    private static final String SOFTWARE_PAGE_URL = "https://actlab.org/software/JAPS";
 
     static {
         System.setProperty(
@@ -151,7 +157,7 @@ public class MainApp extends SingletonApplication implements Initializable {
             if(message != null) {
                 message = message.trim();
             }
-            toast.show(Toast.RED, title, message, null);
+            showAlert(title, message);
         };
         if(Platform.isFxApplicationThread()) {
             r.run();
@@ -160,11 +166,11 @@ public class MainApp extends SingletonApplication implements Initializable {
         }
     }
 
-    @FXML Toast               toast;
     @FXML MenuItem            menuFileOpen;
     @FXML MenuItem            menuFileSave;
     @FXML MenuItem            menuFileExit;
     @FXML MenuItem            menuHelpAbout;
+    @FXML MenuItem            menuHelpUpdate;
     @FXML Pager               pager;
     @FXML PdfView             pdfView;
     @FXML ImageView           ivCursor;
@@ -189,6 +195,7 @@ public class MainApp extends SingletonApplication implements Initializable {
         menuFileSave.setOnAction(wrap(this::menuFileSave_onAction));
         menuFileExit.setOnAction(wrap(this::menuFileExit_onAction));
         menuHelpAbout.setOnAction(wrap(this::menuHelpAbout_onAction));
+        menuHelpUpdate.setOnAction(wrap(this::menuHelpUpdate_onAction));
         pdfView.setOnMouseMoved(wrap(this::pdfView_onMouseMoved));
         pdfView.setOnMouseClicked(wrap(this::pdfView_onMouseClicked));
         btnRemoveSignature.setOnAction(wrap(this::btnRemoveSignature_onAction));
@@ -230,9 +237,6 @@ public class MainApp extends SingletonApplication implements Initializable {
                 Bindings.not(Bindings.selectBoolean(signatureBinding, "visible")));
 
         piSign.visibleProperty().bind(busyProperty);
-
-        toast.maxWidthProperty().bind(getPrimaryStage().widthProperty().subtract(32));
-        toast.maxHeightProperty().bind(getPrimaryStage().heightProperty().subtract(32));
     }
 
     void stage_onReady() {
@@ -267,7 +271,6 @@ public class MainApp extends SingletonApplication implements Initializable {
         File file = getFile(event);
         if(isAcceptable(file)) {
             getPrimaryStage().toFront();
-            toast.hide();
             signedTemporaryFileProperty.set(null);
             inputFileProperty.set(file);
             pdfView.load(file);
@@ -277,7 +280,6 @@ public class MainApp extends SingletonApplication implements Initializable {
     }
 
     void menuFileOpen_onAction(ActionEvent event) {
-        toast.hide();
         Preferences preferences = Preferences.userNodeForPackage(getClass());
 
         FileChooser fc = new FileChooser();
@@ -303,7 +305,6 @@ public class MainApp extends SingletonApplication implements Initializable {
     }
 
     void menuFileSave_onAction(ActionEvent event) throws IOException {
-        toast.hide();
         String defaultName = inputFileProperty.get().getName();
         int i = defaultName.lastIndexOf('.');
         if(i > 0) {
@@ -320,7 +321,7 @@ public class MainApp extends SingletonApplication implements Initializable {
         File file = fc.showSaveDialog(getPrimaryStage());
         if(file != null) {
             Files.copy(signedTemporaryFileProperty.get().toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            toast.show(Toast.GREEN, "保存しました", file.getPath(), Toast.LONG);
+            showAlert("保存完了", "下記のパスに保存しました。\n\n" + file.getPath());
         }
     }
 
@@ -334,8 +335,28 @@ public class MainApp extends SingletonApplication implements Initializable {
         dialog.showAndWait();
     }
 
+    void menuHelpUpdate_onAction(ActionEvent event) throws IOException {
+        UpdateChecker checker = new UpdateChecker(APPLICATION_SHORT_NAME,getSoftwareVersion());
+        UpdaterStatus result = checker.check();
+        switch(result) {
+            case FAIL:
+                showAlert("アップデートチェック", checker.getMessage());
+                return;
+            case ALREADY_UPDATED:
+                showAlert("アップデートチェック", "最新版を利用中です。更新の必要はありません。");
+                return;
+            case PENDING:
+                showAlert("アップデートチェック", checker.getMessage() + "\n\nブラウザでダウンロードページを開きますので、最新版をダウンロードしてご利用ください。\n\n更新内容は、以下の通りです。" + checker.getResponse().getUpdate_description());
+                openBrowser(SOFTWARE_PAGE_URL);
+                return;
+            case SEE_WEB:
+                showAlert("アップデートチェック", checker.getMessage() + "ブラウザでページを表示します。");
+                openBrowser(checker.getResponse().getURL());
+        }
+        System.out.println(checker.check());
+    }
+
     void btnAddSignature_onAction(ActionEvent event) throws IOException {
-        toast.hide();
         SignatureDialog dialog = new SignatureDialog(getPrimaryStage(), null);
         Signature newSignature = dialog.showAndWait().orElse(null);
         if(newSignature == null) {
@@ -346,7 +367,6 @@ public class MainApp extends SingletonApplication implements Initializable {
     }
 
     void btnEditSignature_onAction(ActionEvent event) throws IOException {
-        toast.hide();
         Signature currentSignature = lvSignature.getSelectionModel().getSelectedItem();
         if(currentSignature == null || currentSignature.getImage() == null) {
             return;
@@ -362,7 +382,6 @@ public class MainApp extends SingletonApplication implements Initializable {
     }
 
     void btnRemoveSignature_onAction(ActionEvent event) throws IOException {
-        toast.hide();
         Signature currentSignature = lvSignature.getSelectionModel().getSelectedItem();
         if(currentSignature == null || currentSignature.getImage() == null) {
             return;
@@ -382,23 +401,22 @@ public class MainApp extends SingletonApplication implements Initializable {
     public void lvSignature_onKeyPressed(KeyEvent event) throws JpkiException, IOException, ReflectiveOperationException {
         // エンターキー以外は無視
         if(event.getCode() != KeyCode.ENTER){
-            toast.show(Toast.GREEN,
-                    "キー操作での可視署名には対応していません。",
-                    "可視署名を行うには、使用したい署名を表示位置までマウスでドラッグする必要があります。");
             return;
         }
-
-        toast.hide();
-
+        
         Signature signature = lvSignature.getFocusModel(). getFocusedItem();
         if(signature != Signature.INVISIBLE) {
+            showAlert(
+                    "可視署名の実行",
+                    "キー操作での可視署名には対応していません。\n" +
+                    "可視署名を行うには、使用したい署名を表示位置までマウスでドラッグする必要があります。"
+                );
             return;
         }
         signInvisible();
     }
 
     public void lvSignature_cell_onMousePressed(MouseEvent event) throws JpkiException, IOException, ReflectiveOperationException {
-        toast.hide();
         @SuppressWarnings("unchecked")
         ListCell<Signature> cell = (ListCell<Signature>)event.getSource();
 
@@ -425,34 +443,30 @@ public class MainApp extends SingletonApplication implements Initializable {
 
     private void signInvisible(){
         if(pdfView.getDocument() == null) {
-            toast.show(Toast.GREEN,
-                    "はじめに",
-                    "PDFファイルをこのウィンドウにドラッグ&ドロップして表示しましょう。");
+            showAlert(
+                    "ファイルが開かれていません",
+                    "PDFファイルを開いてから実行してください。"
+                    );
         } else if(checkJpkiAvailability()) {
-            ButtonType result = Dialogs.showConfirmation(getPrimaryStage(),
-                    APPLICATION_NAME + " " + APPLICATION_VERSION,
-                    "印影を使わずに電子署名しますか？");
-            if(result == ButtonType.YES) {
-                PDDocument document = pdfView.getDocument();
-                int pageIndex = pdfView.getPageIndex();
-                SignatureOptions options = null;
-                    busyProperty.set(true);
-                Async.execute(() -> sign(document, null, APPLICATION_NAME, APPLICATION_VERSION))
-                    .onSucceeded(tmpFile -> {
-                        if(tmpFile != null) {
-                            signedTemporaryFileProperty.set(tmpFile);
-                            pdfView.load(tmpFile, pageIndex);
-                            busyProperty.set(false);
+            PDDocument document = pdfView.getDocument();
+            int pageIndex = pdfView.getPageIndex();
+            SignatureOptions options = null;
+            busyProperty.set(true);
+            Async.execute(() -> sign(document, null, APPLICATION_NAME, APPLICATION_VERSION))
+                .onSucceeded(tmpFile -> {
+                    if(tmpFile != null) {
+                        signedTemporaryFileProperty.set(tmpFile);
+                        pdfView.load(tmpFile, pageIndex);
+                        busyProperty.set(false);
 
-                            if(ButtonType.YES == Dialogs.showConfirmation(getPrimaryStage(),
-                                    APPLICATION_NAME + " " + APPLICATION_VERSION,
-                                    "署名が完了しました。\nファイルに名前を付けて保存しますか？")) {
-                                menuFileSave.fire();
-                            }
+                        if(ButtonType.YES == Dialogs.showConfirmation(getPrimaryStage(),
+                                APPLICATION_NAME + " " + APPLICATION_VERSION,
+                                "署名が完了しました。\nファイルに名前を付けて保存しますか？")) {
+                            menuFileSave.fire();
                         }
-                    })
-                    .onCompleted(state -> busyProperty.set(false));
-            }
+                    }
+                })
+                .onCompleted(state -> busyProperty.set(false));
         }
     }
 
@@ -489,8 +503,6 @@ public class MainApp extends SingletonApplication implements Initializable {
     }
 
     void pdfView_onMouseClicked(MouseEvent event) throws  JpkiException, IOException, ReflectiveOperationException {
-        toast.hide();
-
         // 必要な条件を満たしている場合、可視署名を実行します。
 
         if(event.getButton() != MouseButton.PRIMARY) {
@@ -578,17 +590,13 @@ public class MainApp extends SingletonApplication implements Initializable {
             // ただし、Microsoft Storeアプリではストア以外でのアプリインストールを促すことが禁止されているため
             // UWPとして実行されている場合にはウェブサイトを開く機能を提供せずメッセージ表示のみに留めています。
             if(Datastore.isRunningAsUWP()) {
-                toast.show(Toast.GREEN, "構成", "JPKI 利用者クライアントソフトが見つかりません。");
+                showAlert("構成", "JPKI 利用者クライアントソフトが見つかりません。");
             } else {
-                Runnable actionOnClick = wrap(() -> {
-                    toast.hide();
-                    Desktop.getDesktop().browse(URI.create("https://www.jpki.go.jp/download/win.html"));
-                });
-                toast.show(Toast.GREEN, "事前準備", ""
+                showAlert("事前準備", ""
                                 + "JPKI 利用者クライアントソフトをインストールしてください。\n"
-                                + "ここをクリックするとブラウザーでダウンロードサイトを開きます。",
-                        null,
-                        actionOnClick);
+                                + "ブラウザーでダウンロードサイトを開きます。"
+                        );
+                openBrowser("https://www.jpki.go.jp/download/win.html");
             }
         }
         return isAvailable;
@@ -615,4 +623,37 @@ public class MainApp extends SingletonApplication implements Initializable {
     public static double mm2px(double mm) {
         return mm * 72.0 / 25.4;
     }
+
+    private void showAlert(String title,String message) {
+        try {
+            LicenseDialog dialog = new LicenseDialog(
+                    getPrimaryStage(),
+                    title,
+                    message);
+            dialog.showAndWait();
+        } catch (IOException e) {
+            throw new InternalError(e);
+        }
+//        TextInputDialog d = new TextInputDialog(message);
+//        d.getEditor().setEditable(false);
+//        d.getEditor().setMinHeight(200);
+//        d.getEditor().setMinWidth(500);
+//        d.getEditor().
+//        d.setTitle(title);
+//        d.showAndWait();
+    }
+    
+    private void openBrowser(String url) {
+        try {
+            Desktop.getDesktop().browse(URI.create(url));
+        } catch(IOException e) {
+            showAlert("エラー", "ブラウザの起動に失敗しました。代わりに、ブラウザを起動して下記のURLにアクセスしてください。\n\n" + url);
+        }
+    }
+    
+    private String getSoftwareVersion() {
+        int[] intArray = Datastore.getApplicationVersion();
+        return intArray[0] + "." + intArray[1] + "." +intArray[2];
+    }
 }
+

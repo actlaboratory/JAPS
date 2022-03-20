@@ -11,7 +11,6 @@
 <?import net.osdn.util.javafx.scene.layout.ClipPane?>
 <?import net.osdn.util.javafx.scene.control.pdf.Pager?>
 <?import net.osdn.util.javafx.scene.control.pdf.PdfView?>
-<?import net.osdn.jpki.pdf_signer.control.Toast?>
 
 <?import javafx.geometry.Insets?>
 
@@ -53,6 +52,11 @@
                             mnemonicParsing="false">
                             <graphic><FontIcon iconLiteral="mdi-information"/></graphic>
                         </MenuItem>
+                        <MenuItem
+                            fx:id="menuHelpUpdate"
+                            text="アップデートを確認"
+                            mnemonicParsing="false">
+                        </MenuItem>
                     </Menu>
                 </menus>
             </MenuBar>
@@ -92,7 +96,7 @@
                     </Button>
                     <Button
                         fx:id="btnAddSignature"
-                        text="追加"
+                        text="印影の追加"
                         focusTraversable="true">
                         <graphic><FontIcon iconLiteral="mdi-plus"/></graphic>
                     </Button>
@@ -105,9 +109,4 @@
         </right>
     </BorderPane>
 
-    <AnchorPane pickOnBounds="false">
-        <Toast fx:id="toast"
-               AnchorPane.rightAnchor="7"
-               AnchorPane.bottomAnchor="7"/>
-    </AnchorPane>
 </StackPane>
