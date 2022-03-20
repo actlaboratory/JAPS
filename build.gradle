@@ -1,15 +1,15 @@
 apply plugin: 'java'
 apply plugin: 'application'
-apply plugin: "eclipse" 
+apply plugin: 'eclipse'
+apply plugin: 'org.openjfx.javafxplugin'
 
 version = '1.0.0'
-
-
 
 javadoc {
     options.charSet = 'UTF-8'
     options.encoding = 'UTF-8'
 }
+
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
 	targetCompatibility = 11
@@ -55,6 +55,11 @@ application {
     mainClassName = 'net.osdn.jpki.pdf_signer.Main'
 }
 
+javafx {
+    version = '11.0.2'
+    modules = [ 'javafx.controls', 'javafx.fxml' ]
+}
+
 def defaultEncoding = 'UTF-8'
 tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
 tasks.withType(GroovyCompile).each { it.groovyOptions.encoding = defaultEncoding }
@@ -73,6 +78,17 @@ jar {
 			include('LICENSE.txt')
 		}
 	}
+}
+
+buildscript {
+  repositories {
+    maven {
+      url "https://plugins.gradle.org/m2/"
+    }
+  }
+  dependencies {
+    classpath "org.openjfx:javafx-plugin:0.0.12"
+  }
 }
 
 task copyLibraries(type: Copy) {
@@ -106,9 +122,9 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 			"-j", "${jar.archiveFile.get()}",
 			"-i", "etc/ico/app.ico",
 			"-o", "${buildDir}/package/${archivesBaseName}.exe",
-			"-p", "JPKI PDF SIGNER",
-			"-d", "JPKI PDF SIGNER",
-			"-c", "(C) 2017-2020 HIRUKAWA Ryo",
+			"-p", "JPKI ACCESSIBLE PDF SIGNER",
+			"-d", "JPKI ACCESSIBLE PDF SIGNER",
+			"-c", "(c)2021 yamahubuki, ACT Laboratory",
 			"-V", "${version}",
 			"-v", "${version}"
 }
