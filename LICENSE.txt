@@ -1,6 +1,8 @@
+jpki-accessible-pdf-signer Ver 1.0.0
+
 (c) 2022 yamahubuki, ACT Laboratory
 
-本ソフトウェアは、下記のライセンスに基づき公開されている「jpki-jpki-pdf-signer」を
+本ソフトウェアは、下記のライセンスに基づき公開されている「jpki-pdf-signer Version 1.2.5」を
 アクセシビリティに配慮して改良したものです。
 私の改変部分についても、原著作者の開発部分と同様の条件で扱うことを許諾します。
 
