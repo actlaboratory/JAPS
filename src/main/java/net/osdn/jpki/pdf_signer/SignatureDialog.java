@@ -1,22 +1,16 @@
 package net.osdn.jpki.pdf_signer;
 
 import javafx.beans.binding.DoubleBinding;
-import javafx.beans.binding.ObjectBinding;
 import javafx.beans.property.DoubleProperty;
-import javafx.beans.value.ChangeListener;
-import javafx.beans.value.ObservableValue;
 import javafx.event.ActionEvent;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.Bounds;
 import javafx.geometry.Dimension2D;
-import javafx.geometry.Rectangle2D;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ButtonType;
-import javafx.scene.control.Dialog;
 import javafx.scene.control.DialogEvent;
 import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
@@ -66,6 +60,9 @@ public class SignatureDialog extends DialogEx<Signature> implements Initializabl
 		if(signature != null) {
 			ivImage.setImage(signature.getImage());
 			tfTitle.setText(signature.getTitle());
+			tfTitle.setAccessibleHelp("表示名");
+			tfWidthMillis.setAccessibleHelp("横の長さ(mm単位)");
+			tfHeightMillis.setAccessibleHelp("縦の長さ(mm単位)");
 			widthMillisProperty.set(signature.getWidthMillis());
 			heightMillisProperty.set(signature.getHeightMillis());
 		} else {
@@ -235,12 +232,10 @@ public class SignatureDialog extends DialogEx<Signature> implements Initializabl
 		return new Dimension2D(prefWidth, prefHeight);
 	}
 
-	@SuppressWarnings("overloads")
 	protected <T extends Event> EventHandler<T> wrap(SilentEventHandler<T> handler) {
 		return SilentEventHandler.wrap(handler);
 	}
 
-	@SuppressWarnings("overloads")
 	protected <P, R> Callback<P, R> wrap(SilentCallback<P, R> callback) {
 		return SilentCallback.wrap(callback);
 	}

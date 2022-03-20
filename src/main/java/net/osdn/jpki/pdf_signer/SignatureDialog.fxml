@@ -15,7 +15,7 @@
     <left>
         <VBox spacing="10">
             <Button fx:id="btnBrowse"
-                    text="ファイル参照...">
+                    text="印影画像ファイル参照...">
                 <maxWidth><Double fx:constant="MAX_VALUE"/></maxWidth>
             </Button>
             <StackPane
