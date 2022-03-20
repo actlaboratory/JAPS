@@ -1,7 +1,15 @@
 apply plugin: 'java'
+apply plugin: 'application'
+apply plugin: "eclipse" 
 
-version = '1.2.5'
+version = '1.0.0'
 
+
+
+javadoc {
+    options.charSet = 'UTF-8'
+    options.encoding = 'UTF-8'
+}
 tasks.withType(JavaCompile) {
 	sourceCompatibility = 11
 	targetCompatibility = 11
@@ -13,6 +21,9 @@ repositories {
 	jcenter()
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
 dependencies {
 	implementation fileTree(dir: 'lib',
 			includes: ['**/*.jar'],
@@ -30,17 +41,25 @@ dependencies {
 	runtimeOnly 'org.bouncycastle:bcpkix-jdk15on:1.66'
 	runtimeOnly 'net.java.dev.jna:jna:5.6.0'
 	runtimeOnly 'net.java.dev.jna:jna-platform:5.6.0'
+
+	// rombok
+	 compileOnly "org.projectlombok:lombok:1.18.22"
+	 annotationProcessor "org.projectlombok:lombok:1.18.22"
 }
 
 sourceSets.main.resources {
 	srcDirs = ['src/main/resources', 'src/main/java' ]
 }
 
+application {
+    mainClassName = 'net.osdn.jpki.pdf_signer.Main'
+}
+
 def defaultEncoding = 'UTF-8'
 tasks.withType(AbstractCompile).each { it.options.encoding = defaultEncoding }
 tasks.withType(GroovyCompile).each { it.groovyOptions.encoding = defaultEncoding }
 
-defaultTasks 'clean', 'build', 'exewrap'
+defaultTasks 'clean', 'build', 'exewrap', 'run'
 
 jar {
 	manifest {
@@ -93,3 +112,4 @@ task exewrap(type: Exec, dependsOn: 'jar') {
 			"-V", "${version}",
 			"-v", "${version}"
 }
+
