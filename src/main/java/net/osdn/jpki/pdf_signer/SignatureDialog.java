@@ -60,14 +60,14 @@ public class SignatureDialog extends DialogEx<Signature> implements Initializabl
 		if(signature != null) {
 			ivImage.setImage(signature.getImage());
 			tfTitle.setText(signature.getTitle());
-			tfTitle.setAccessibleHelp("表示名");
-			tfWidthMillis.setAccessibleHelp("横の長さ(mm単位)");
-			tfHeightMillis.setAccessibleHelp("縦の長さ(mm単位)");
 			widthMillisProperty.set(signature.getWidthMillis());
 			heightMillisProperty.set(signature.getHeightMillis());
 		} else {
 			btnBrowse.requestFocus();
 		}
+		tfTitle.setAccessibleHelp("表示名");
+		tfWidthMillis.setAccessibleHelp("横の長さ(mm単位)");
+		tfHeightMillis.setAccessibleHelp("縦の長さ(mm単位)");
 	}
 
 	@FXML Button btnBrowse;
