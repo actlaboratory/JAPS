@@ -38,38 +38,10 @@ public class Datastore {
 
 	public static Path getMyDataDirectory() throws IOException {
 		if(myDataDir == null) {
-			String s = System.getenv("APPDATA");
-			if(s == null) {
-				throw new IOException("APPDATA環境変数が定義されていないためデータ保存ディレクトリを参照できません。");
-			}
-			Path APPDATA = Paths.get(s);
+			Path APPDATA = getApplicationDirectory();
 			if (Files.isDirectory(APPDATA)) {
-				myDataDir = APPDATA.resolve("jpki-pdf-signer");
+				myDataDir = APPDATA.resolve("data");
 			}
-
-			// バージョン0.4以前はアプリケーションディレクトリ直下の "mydata" ディレクトリにデータを保存していましたが、
-			// バージョン0.5以降は環境変数 APPDATA 直下の "jpki-pdf-signer" ディレクトリにデータを保存するように変更しました。
-			// APPDATA 直下の "jpki-pdf-signer" ディレクトリが存在せず、旧バージョンの "mydata" ディレクトリが存在する場合、
-			// "mydata" の内容を %APPDATA%/jpki-pdf-signer にコピーします。
-			if(Files.notExists(myDataDir)) {
-				Path oldMyDataDir = getApplicationDirectory().resolve("mydata");
-				if(Files.isDirectory(oldMyDataDir)) {
-					Files.createDirectory(myDataDir);
-					try(Stream<Path> files = Files.list(oldMyDataDir)) {
-						files.forEach(source -> {
-							try {
-								Path target = myDataDir.resolve(source.getFileName());
-								Files.copy(source, target);
-							} catch(IOException e) {
-								throw new UncheckedIOException(e);
-							}
-						});
-					}
-				}
-			}
-		}
-		if(myDataDir == null) {
-			myDataDir = getApplicationDirectory().resolve("mydata");
 		}
 		return myDataDir;
 	}
